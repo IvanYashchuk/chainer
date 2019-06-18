@@ -37,8 +37,7 @@ public:
         // potrf (cholesky) stores result in-place, therefore copy ``a`` to ``out`` and then pass ``out`` to the routine
         device.backend().CallKernel<CopyKernel>(a, out);
 
-        bool is_out_contiguous = out.IsContiguous();
-        Array out_contiguous = is_out_contiguous ? out : AsContiguous(out);
+        Array out_contiguous = AsContiguous(out);
         CHAINERX_ASSERT(a.dtype() == out_contiguous.dtype());
 
         auto cholesky_impl = [&](auto pt, auto potrf) {
@@ -71,10 +70,6 @@ public:
                 break;
             default:
                 CHAINERX_NEVER_REACH();
-        }
-
-        if (!is_out_contiguous) {
-            device.backend().CallKernel<CopyKernel>(out_contiguous, out);
         }
     }
 };
