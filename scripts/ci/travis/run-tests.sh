@@ -139,11 +139,11 @@ case "${CHAINER_TRAVIS_TEST}" in
                 ;;
 
             script)
-                run_step chainer_tests
+                # run_step chainer_tests
 
-                if [[ $SKIP_CHAINERMN != 1 ]]; then
-                    run_step chainermn_tests
-                fi
+                # if [[ $SKIP_CHAINERMN != 1 ]]; then
+                #     run_step chainermn_tests
+                # fi
 
                 if [[ $SKIP_CHAINERX != 1 ]]; then
                     CHAINERX_TEST_CUDA_DEVICE_LIMIT=0 \
