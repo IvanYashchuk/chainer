@@ -140,7 +140,7 @@ step_chainer_install_from_sdist() {
     if [[ $SKIP_CHAINERX != 1 ]]; then
         envs+=(CHAINER_BUILD_CHAINERX=1)
     fi
-    env "${envs[@]}" pip install "$REPO_DIR"/dist/*.tar.gz
+    env "${envs[@]}" pip install "$REPO_DIR"/dist/*.tar.gz -vvv
 }
 
 
