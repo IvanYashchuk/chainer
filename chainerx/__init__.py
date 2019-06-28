@@ -6,11 +6,11 @@ import warnings
 if sys.version_info[0] < 3:
     _available = False
 else:
-    try:
-        from chainerx import _core
-        _available = True
-    except Exception:
-        _available = False
+    # try:
+    from chainerx import _core
+    _available = True
+    # except Exception:
+    #     _available = False
 
 
 if _available:
