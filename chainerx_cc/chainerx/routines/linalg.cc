@@ -204,7 +204,7 @@ std::tuple<Array, Array> QR(const Array& a, QRMode mode) {
     }
 
     // Backward of (Q, R) = QR(A):
-    // dA = (dQ + symmetrize(M) * Q) * R^(-T), M = R * dR^T - dQ^T * Q
+    // dA = (dQ + Q * symmetrize(M)) * R^(-T), M = R * dR^T - dQ^T * Q
     {
         BackwardBuilder bb{"qr", a, {q, r}};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
@@ -225,19 +225,18 @@ std::tuple<Array, Array> QR(const Array& a, QRMode mode) {
                 const Array& gQ = bctx.output_grad(0).has_value() ? *bctx.output_grad(0) : Zeros(a.shape(), a.dtype(), a.device());
                 const Array& gR = bctx.output_grad(1).has_value() ? *bctx.output_grad(1) : Zeros(a.shape(), a.dtype(), a.device());
 
-                Array M = Dot(R, gR.Transpose(), a.dtype()) - Dot(gQ.Transpose(), Q);
+                Array M = Dot(R, gR.Transpose(), a.dtype()) - Dot(gQ.Transpose(), Q, a.dtype());
 
                 // Here a symmetric matrix is created from the square matrix M
                 // by setting the upper triangle to be equal to the lower triangle, leaving
                 // lower triangle and diagonal unchanged.
                 Array M_sym = Tril(M, 0) + Tril(M, -1).Transpose();
-                Array rhs = gQ + Dot(M_sym, Q, a.dtype());
+                Array rhs = gQ + Dot(Q, M_sym, a.dtype());
 
                 // Note that rhs * R^(-T) = (R^(-1) * rhs^T)^T
-                // bctx.input_grad() = Solve(R, rhs.Transpose()).Transpose();
-                bctx.input_grad() = Zeros(a.shape(), a.dtype(), a.device());
+                bctx.input_grad() = Solve(R, rhs.Transpose()).Transpose();
 
-                throw ChainerxError{"ChainerX QR differentiation is not implemented."};
+                // throw ChainerxError{"ChainerX QR differentiation is not implemented."};
             });
         }
         bb.Finalize();
