@@ -101,6 +101,8 @@ Linear algebra
 
    chainerx.dot
 
+   chainerx.linalg.inv
+   chainerx.linalg.solve
    chainerx.linalg.qr
 
 Logic functions
