@@ -87,9 +87,6 @@ step_before_install_chainerx_test_deps() {
     if [[ $TRAVIS_OS_NAME = "linux" ]]; then
         sudo apt-get install -y libblas-dev liblapack-dev
     fi
-    if [[ $TRAVIS_OS_NAME = "osx" ]]; then
-        brew install lapack >/dev/null
-    fi
 }
 
 
