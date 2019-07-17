@@ -160,7 +160,7 @@ step_chainer_tests() {
 
 
 step_chainerx_python_tests() {
-    ldd /home/travis/virtualenv/python3.5.6/lib/python3.5/site-packages/chainerx/./libchainerx.so
+    # ldd /home/travis/virtualenv/python3.5.6/lib/python3.5/site-packages/chainerx/./libchainerx.so
     pytest -rfEX "$REPO_DIR"/tests/chainerx_tests
 }
 
