@@ -21,6 +21,7 @@
 #include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/indexing.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 
@@ -238,6 +239,32 @@ public:
 };
 
 CHAINERX_CUDA_REGISTER_KERNEL(TriKernel, CudaTriKernel);
+
+class CudaTriuKernel : public TriuKernel {
+public:
+    void Call(const Array& a, int64_t k, const Array& out) override {
+        Device& device = a.device();
+        CudaSetDeviceScope scope{device.index()};
+        Array mask = Empty(Shape{a.shape()[a.ndim() - 2], a.shape()[a.ndim() - 1]}, Dtype::kBool, a.device());
+        device.backend().CallKernel<TriKernel>(k - 1, mask);
+        device.backend().CallKernel<CopyKernel>(Where(mask, 0, a), out);
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(TriuKernel, CudaTriuKernel);
+
+class CudaTrilKernel : public TrilKernel {
+public:
+    void Call(const Array& a, int64_t k, const Array& out) override {
+        Device& device = a.device();
+        CudaSetDeviceScope scope{device.index()};
+        Array mask = Empty(Shape{a.shape()[a.ndim() - 2], a.shape()[a.ndim() - 1]}, Dtype::kBool, a.device());
+        device.backend().CallKernel<TriKernel>(k, mask);
+        device.backend().CallKernel<CopyKernel>(Where(mask, a, 0), out);
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(TrilKernel, CudaTrilKernel);
 
 }  // namespace
 }  // namespace cuda

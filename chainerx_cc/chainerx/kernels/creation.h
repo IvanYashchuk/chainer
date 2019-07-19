@@ -68,4 +68,20 @@ public:
     virtual void Call(int64_t k, const Array& out) = 0;
 };
 
+class TriuKernel : public Kernel {
+public:
+    static const char* name() { return "Triu"; }
+
+    // Copies a matrix with the elements below the k-th diagonal zeroed.
+    virtual void Call(const Array& a, int64_t k, const Array& out) = 0;
+};
+
+class TrilKernel : public Kernel {
+public:
+    static const char* name() { return "Tril"; }
+
+    // Copies a matrix with the elements above the k-th diagonal zeroed.
+    virtual void Call(const Array& a, int64_t k, const Array& out) = 0;
+};
+
 }  // namespace chainerx

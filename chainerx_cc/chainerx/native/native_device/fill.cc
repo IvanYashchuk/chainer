@@ -13,6 +13,8 @@
 #include "chainerx/native/data_type.h"
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/kernel_regist.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/routines/indexing.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 
@@ -180,6 +182,30 @@ public:
 };
 
 CHAINERX_NATIVE_REGISTER_KERNEL(TriKernel, NativeTriKernel);
+
+class NativeTriuKernel : public TriuKernel {
+public:
+    void Call(const Array& a, int64_t k, const Array& out) override {
+        Device& device = a.device();
+        Array mask = Empty(Shape{a.shape()[a.ndim() - 2], a.shape()[a.ndim() - 1]}, Dtype::kBool, a.device());
+        device.backend().CallKernel<TriKernel>(k - 1, mask);
+        device.backend().CallKernel<CopyKernel>(Where(mask, 0, a), out);
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(TriuKernel, NativeTriuKernel);
+
+class NativeTrilKernel : public TrilKernel {
+public:
+    void Call(const Array& a, int64_t k, const Array& out) override {
+        Device& device = a.device();
+        Array mask = Empty(Shape{a.shape()[a.ndim() - 2], a.shape()[a.ndim() - 1]}, Dtype::kBool, a.device());
+        device.backend().CallKernel<TriKernel>(k, mask);
+        device.backend().CallKernel<CopyKernel>(Where(mask, a, 0), out);
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(TrilKernel, NativeTrilKernel);
 
 }  // namespace
 }  // namespace native

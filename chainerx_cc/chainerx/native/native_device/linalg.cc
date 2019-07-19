@@ -219,7 +219,7 @@ std::tuple<Array, Array> QRImpl(const Array& a, QRMode mode) {
 
     if (mode == QRMode::r) {
         R = R.At(std::vector<ArrayIndex>{Slice{}, Slice{0, mn}}).Transpose();  // R = R[:, 0:mn].T
-        R = Triu(R, 0);
+        device.backend().CallKernel<TriuKernel>(R, 0, R);  // R = Triu(R, 0)
         return std::make_tuple(std::move(Q), std::move(R));
     }
 
@@ -256,7 +256,7 @@ std::tuple<Array, Array> QRImpl(const Array& a, QRMode mode) {
     // .Copy() is needed to have correct strides
     Q = Q.At(std::vector<ArrayIndex>{Slice{0, mc}, Slice{}}).Transpose().Copy();  // Q = Q[0:mc, :].T
     R = R.At(std::vector<ArrayIndex>{Slice{}, Slice{0, mc}}).Transpose();  // R = R[:, 0:mc].T
-    R = Triu(R, 0);
+    device.backend().CallKernel<TriuKernel>(R, 0, R); // R = Triu(R, 0)
     return std::make_tuple(std::move(Q), std::move(R));
 }
 
