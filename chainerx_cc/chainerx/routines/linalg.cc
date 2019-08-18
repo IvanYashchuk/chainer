@@ -167,7 +167,7 @@ Array Inverse(const Array& a) {
     CheckRankTwoArray(a);
     CheckSquareMatrix(a);
     Dtype dtype = internal::GetMathResultDtype(a.dtype());
-    Array out = Empty(a.shape(), dtype, a.device());
+    Array out = Identity(a.shape()[0], dtype, a.device());
 
     {
         NoBackpropModeScope scope{};

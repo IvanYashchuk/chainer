@@ -243,6 +243,53 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     device.backend().CallKernel<CopyKernel>(out_transposed.Transpose(), out);
 }
 
+template <typename T>
+void InverseImpl(const Array& a, const Array& out) {
+    Device& device = a.device();
+    Dtype dtype = a.dtype();
+
+    cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
+
+    Array lu_matrix = Empty(a.shape(), dtype, device);
+    device.backend().CallKernel<CopyKernel>(a, lu_matrix);
+    auto lu_ptr = static_cast<T*>(internal::GetRawOffsetData(lu_matrix));
+
+    int64_t m = a.shape()[0];
+
+    Array ipiv = Empty(Shape{m}, Dtype::kInt32, device);
+    auto ipiv_ptr = static_cast<int*>(internal::GetRawOffsetData(ipiv));
+
+    int buffersize = 0;
+    device_internals.cusolverdn_handle().Call(GetrfBuffersize<T>, m, m, lu_ptr, m, &buffersize);
+
+    Array work = Empty(Shape{buffersize}, dtype, device);
+    auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
+
+    std::shared_ptr<void> devinfo = device.Allocate(sizeof(int));
+
+    device_internals.cusolverdn_handle().Call(Getrf<T>, m, m, lu_ptr, m, work_ptr, ipiv_ptr, static_cast<int*>(devinfo.get()));
+
+    int devinfo_h = 0;
+    Device& native_device = GetDefaultContext().GetDevice({"native", 0});
+    device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
+    if (devinfo_h != 0) {
+        throw ChainerxError{"Unsuccessful getrf (LU) execution. Info = ", devinfo_h};
+    }
+
+    auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out));
+
+    // There is LAPACK routine ``getri`` for computing the inverse of an LU-factored matrix,
+    // but cuSOLVER does not have it implemented, therefore inverse is obtained with ``getrs``
+    // inv(A) == solve(A, Identity)
+    device_internals.cusolverdn_handle().Call(
+            Getrs<T>, CUBLAS_OP_N, m, m, lu_ptr, m, ipiv_ptr, out_ptr, m, static_cast<int*>(devinfo.get()));
+
+    device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
+    if (devinfo_h != 0) {
+        throw ChainerxError{"Unsuccessful getrs (Solve) execution. Info = ", devinfo_h};
+    }
+}
+
 }  // namespace
 
 class CudaSolveKernel : public SolveKernel {
@@ -273,11 +320,10 @@ public:
         CHAINERX_ASSERT(a.ndim() == 2);
         CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
 
-        // There is LAPACK routine ``getri`` for computing the inverse of an LU-factored matrix,
-        // but cuSOLVER does not have it implemented, therefore inverse is obtained with ``getrs``
-        // inv(A) == solve(A, Identity)
-        Array b = Identity(a.shape()[0], dtype, device);
-        device.backend().CallKernel<SolveKernel>(a, b, out);
+        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            InverseImpl<T>(a, out);
+        });
     }
 };
 
