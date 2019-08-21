@@ -159,7 +159,7 @@ step_chainer_tests() {
 
 
 step_chainerx_python_tests() {
-    pytest -rfEX "$REPO_DIR"/tests/chainerx_tests -s -v
+    pytest -rfEX "$REPO_DIR"/tests/chainerx_tests/unit_tests/routines_tests/test_linalg.py -s -v
 }
 
 
